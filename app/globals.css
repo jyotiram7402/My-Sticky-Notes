@@ -1,0 +1,738 @@
+@import "tailwindcss";
+
+/* Design tokens. Utilities like bg-app, text-muted and border-line come from these. */
+@theme {
+  --color-app: #f5f5f2;
+  --color-surface: #ffffff;
+  --color-line: #e5e4df;
+  --color-ink: #111111;
+  --color-muted: #6b6b6b;
+  --color-accent: #ff9a3c;
+  --color-soft: #ebeae5;
+  --color-danger: #c62828;
+}
+
+/* Inter from next/font (the --font-inter variable is set on <html>). */
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+@layer base {
+  /* The same tokens as plain variables for the hand-written classes below. Tailwind may leave out
+     theme variables that no utility uses, so custom CSS never depends on them. */
+  :root {
+    --app-bg: #f5f5f2;
+    --app-surface: #ffffff;
+    --app-line: #e5e4df;
+    --app-ink: #111111;
+    --app-muted: #6b6b6b;
+    --app-accent: #ff9a3c;
+    --app-soft: #ebeae5;
+    --app-danger: #c62828;
+  }
+
+  html {
+    color-scheme: light;
+    background-color: var(--app-bg);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--app-bg);
+    color: var(--app-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring, var(--app-ink));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: rgb(255 154 60 / 0.35);
+  }
+
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  textarea {
+    resize: none;
+  }
+}
+
+@layer components {
+  /* ---------- Layout helpers ---------- */
+  .safe-x {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  @media (min-width: 640px) {
+    .safe-x {
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
+    }
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  /* Grows the touch area to at least 44 x 44 without changing the visual size. */
+  .hit {
+    position: relative;
+  }
+  .hit::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wrap-any {
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------- Buttons ---------- */
+  .icon-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    background-color: var(--app-soft);
+    color: var(--app-ink);
+    transition:
+      background-color 150ms ease,
+      transform 150ms ease;
+  }
+  .icon-btn:active {
+    transform: scale(0.95);
+  }
+  @media (hover: hover) {
+    .icon-btn:hover {
+      background-color: #e1e0da;
+    }
+  }
+
+  .pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+      background-color 150ms ease,
+      opacity 150ms ease,
+      transform 150ms ease;
+  }
+  .pill:active {
+    transform: scale(0.97);
+  }
+  .pill:disabled {
+    opacity: 0.5;
+  }
+  .pill-black {
+    background-color: #000000;
+    color: #ffffff;
+  }
+  .pill-outline {
+    border: 1px solid currentColor;
+    background-color: transparent;
+  }
+  .pill-lg {
+    height: 48px;
+    padding: 0 24px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .avatar {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: var(--app-ink);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  /* ---------- Filter chips ---------- */
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+    background-color: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
+  }
+  .chip::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+  .chip[aria-pressed="true"] {
+    border-color: #000000;
+    background-color: #000000;
+    color: #ffffff;
+  }
+
+  /* ---------- Sticky note cards ---------- */
+  /* The wrapper's drop-shadow follows the card's folded shape. */
+  .note-wrap {
+    filter: drop-shadow(0 1px 1px rgb(17 17 17 / 0.06)) drop-shadow(0 6px 12px rgb(17 17 17 / 0.08));
+    transition: transform 150ms ease;
+  }
+  .note-wrap:active {
+    transform: scale(0.97);
+  }
+
+  .note-card {
+    --fold: 22px;
+    --fold-mix: 74%;
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 8px;
+    background-color: var(--note-bg, #ffd43b);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--fold)), calc(100% - var(--fold)) 100%, 0 100%);
+  }
+  @media (min-width: 640px) {
+    .note-card {
+      --fold: 26px;
+    }
+  }
+  .note-card--outlined {
+    --fold-mix: 88%;
+    box-shadow: inset 0 0 0 1px var(--app-line);
+  }
+
+  /* Folded corner: the flap is a darker shade of the card color. */
+  .note-fold {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: var(--fold);
+    height: var(--fold);
+    border-top-left-radius: 4px;
+    background-color: rgb(0 0 0 / 0.2);
+    background-color: color-mix(in srgb, var(--note-bg, #ffd43b) var(--fold-mix), #000000);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    pointer-events: none;
+  }
+
+  .note-card__open {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+  }
+  /* Drawn inside the card because the clip-path would cut an outside ring. */
+  .note-card__open:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: -6px;
+  }
+
+  .note-card__body {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 12px 12px 10px;
+    pointer-events: none;
+  }
+  @media (min-width: 640px) {
+    .note-card__body {
+      padding: 14px 14px 12px;
+    }
+  }
+  .note-card__body a {
+    pointer-events: auto;
+  }
+
+  .note-skeleton {
+    aspect-ratio: 4 / 5;
+    border-radius: 8px;
+    background-color: var(--app-soft);
+  }
+
+  /* ---------- Sheet (bottom sheet on phones, dialog on laptops) ---------- */
+  .sheet-backdrop {
+    background-color: rgb(17 17 17 / 0.42);
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+  [data-state="open"] > .sheet-backdrop {
+    opacity: 1;
+  }
+
+  .sheet-panel {
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: 24px 24px 0 0;
+    background-color: var(--app-surface);
+    box-shadow: 0 -8px 40px rgb(0 0 0 / 0.16);
+    transform: translate3d(0, 100%, 0);
+    transition:
+      transform 260ms cubic-bezier(0.32, 0.72, 0, 1),
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+  .sheet-panel[data-variant="full"] {
+    height: 92vh;
+    height: 92dvh;
+  }
+  [data-state="open"] .sheet-panel {
+    transform: translate3d(0, 0, 0);
+  }
+  .sheet-panel:focus-visible {
+    outline: none;
+  }
+  @media (min-width: 768px) {
+    .sheet-panel {
+      max-width: 640px;
+      border-radius: 24px;
+      box-shadow: 0 24px 64px rgb(0 0 0 / 0.22);
+      opacity: 0;
+      transform: translate3d(0, 16px, 0) scale(0.98);
+      transition:
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 180ms ease,
+        background-color 200ms ease,
+        color 200ms ease;
+    }
+    .sheet-panel[data-variant="full"] {
+      height: 88vh;
+      height: min(88dvh, 860px);
+    }
+    .sheet-panel[data-variant="compact"] {
+      max-width: 420px;
+    }
+    [data-state="open"] .sheet-panel {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ---------- Popovers and menus ---------- */
+  .popover {
+    position: absolute;
+    z-index: 30;
+    min-width: 208px;
+    padding: 6px;
+    border: 1px solid var(--app-line);
+    border-radius: 16px;
+    background-color: var(--app-surface);
+    color: var(--app-ink);
+    box-shadow:
+      0 12px 32px rgb(17 17 17 / 0.14),
+      0 2px 6px rgb(17 17 17 / 0.06);
+    --focus-ring: var(--app-ink);
+    animation: pop-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .menu-item {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    border-radius: 10px;
+    color: var(--app-ink);
+    font-size: 15px;
+    text-align: left;
+  }
+  .menu-item:focus-visible {
+    outline-offset: -2px;
+    background-color: var(--app-soft);
+  }
+  @media (hover: hover) {
+    .menu-item:hover {
+      background-color: var(--app-soft);
+    }
+  }
+  .menu-item[data-tone="danger"] {
+    color: var(--app-danger);
+  }
+  .menu-item:disabled {
+    opacity: 0.45;
+  }
+
+  .text-field {
+    height: 44px;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--app-line);
+    border-radius: 12px;
+    background-color: var(--app-surface);
+    padding: 0 12px;
+    color: var(--app-ink);
+    font-size: 16px;
+  }
+  .text-field::placeholder {
+    color: #8a8a87;
+  }
+
+  /* ---------- Toasts ---------- */
+  .toast-region {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex;
+    justify-content: center;
+    padding: 0 16px max(20px, calc(env(safe-area-inset-bottom) + 12px));
+    pointer-events: none;
+  }
+  .toast {
+    display: flex;
+    min-height: 48px;
+    max-width: min(92vw, 420px);
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    border-radius: 9999px;
+    background-color: #111111;
+    color: #ffffff;
+    font-size: 14px;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+    pointer-events: auto;
+    --focus-ring: #ffffff;
+    animation: toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .toast--action {
+    padding-right: 6px;
+  }
+  .toast-action {
+    display: inline-flex;
+    height: 36px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    border-radius: 9999px;
+    color: var(--app-accent);
+    font-weight: 600;
+  }
+
+  /* ---------- Editor on a colored note ---------- */
+  .on-note {
+    --focus-ring: var(--note-fg);
+  }
+  .on-note-soft {
+    background-color: rgb(0 0 0 / 0.07);
+    background-color: color-mix(in srgb, var(--note-fg) 10%, transparent);
+  }
+  .on-note-line {
+    border-color: rgb(0 0 0 / 0.2);
+    border-color: color-mix(in srgb, var(--note-fg) 28%, transparent);
+  }
+  .on-note-muted {
+    color: var(--note-fg);
+    color: color-mix(in srgb, var(--note-fg) 70%, transparent);
+  }
+  .on-note-faint {
+    color: var(--note-fg);
+    color: color-mix(in srgb, var(--note-fg) 36%, transparent);
+  }
+  .on-note-input::placeholder {
+    color: color-mix(in srgb, var(--note-fg) 45%, transparent);
+    opacity: 1;
+  }
+  .on-note-pill {
+    background-color: var(--pill-bg);
+    color: var(--pill-fg);
+  }
+  .on-note-handle {
+    background-color: rgb(0 0 0 / 0.25);
+    background-color: color-mix(in srgb, var(--note-fg) 30%, transparent);
+  }
+
+  /* The editor fills the sheet panel with the note color, live as the color changes. */
+  .editor-surface {
+    border-radius: inherit;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+  .on-note .icon-btn {
+    background-color: rgb(0 0 0 / 0.07);
+    background-color: color-mix(in srgb, var(--note-fg) 10%, transparent);
+    color: var(--note-fg);
+  }
+  .on-note .icon-btn--ghost {
+    background-color: transparent;
+  }
+  @media (hover: hover) {
+    .on-note .icon-btn:hover {
+      background-color: color-mix(in srgb, var(--note-fg) 16%, transparent);
+    }
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--note-fg);
+    color: color-mix(in srgb, var(--note-fg) 70%, transparent);
+  }
+
+  .editor-title {
+    field-sizing: content;
+    display: block;
+    width: 100%;
+    background: transparent;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .editor-content {
+    field-sizing: content;
+    display: block;
+    width: 100%;
+    min-height: 7.5em;
+    background: transparent;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .editor-title:focus-visible,
+  .editor-content:focus-visible {
+    outline: none;
+  }
+
+  .swatch-btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+  }
+  .swatch {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1.5px rgb(0 0 0 / 0.14);
+    transition: box-shadow 150ms ease;
+  }
+  .swatch-btn[aria-pressed="true"] .swatch {
+    box-shadow:
+      inset 0 0 0 1.5px rgb(0 0 0 / 0.14),
+      0 0 0 2px var(--note-bg),
+      0 0 0 4px var(--note-fg);
+  }
+
+  .icon-choice {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background-color: rgb(0 0 0 / 0.07);
+    background-color: color-mix(in srgb, var(--note-fg) 10%, transparent);
+    color: var(--note-fg);
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+  .icon-choice[aria-pressed="true"] {
+    background-color: var(--note-fg);
+    color: var(--note-bg);
+  }
+
+  .toggle-btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+  .toggle-btn[aria-pressed="true"] {
+    background-color: var(--note-fg);
+    color: var(--note-bg);
+  }
+
+  /* Big date and time: the native input sits invisibly on top of the large display. */
+  .big-field {
+    position: relative;
+    border-radius: 12px;
+  }
+  .big-field:has(.big-field__input:focus-visible) {
+    outline: 2px solid var(--focus-ring, var(--app-ink));
+    outline-offset: 4px;
+  }
+  .big-field__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    font-size: 16px;
+    opacity: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .big-field__input:focus-visible {
+    outline: none;
+  }
+
+  .link-chip {
+    display: inline-flex;
+    height: 44px;
+    max-width: 100%;
+    align-items: center;
+    gap: 2px;
+    padding-left: 10px;
+    border-radius: 12px;
+    background-color: rgb(255 255 255 / 0.92);
+    color: var(--app-ink);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+    --focus-ring: var(--app-ink);
+  }
+  .link-chip__btn {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    color: var(--app-ink);
+  }
+  @media (hover: hover) {
+    .link-chip__btn:hover {
+      background-color: rgb(0 0 0 / 0.06);
+    }
+  }
+  .paste-tile {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background-color: var(--app-accent);
+    color: #ffffff;
+    --focus-ring: var(--note-fg);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-up {
+  animation: fade-up 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Login page: onboarding shows once per device, then the passcode form.
+   Unlayered on purpose so no utility class can override the display. */
+html[data-onboarded] .onboarding-stage {
+  display: none;
+}
+html:not([data-onboarded]) .login-stage {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
