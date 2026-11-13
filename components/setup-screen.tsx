@@ -9,7 +9,7 @@ const SETTINGS: Record<string, string> = {
   APP_PASSCODE: "The passcode you'll type to unlock the app on each device.",
   SESSION_SECRET: "A long random string (32+ characters) that signs the login cookie.",
   DATABASE_URL:
-    "Your Neon database. Vercel adds it for you when you connect a free Neon database from the Storage tab.",
+    "Your Supabase database. Connect a free Supabase database from Vercel's Storage tab (it adds POSTGRES_URL for you), or paste Supabase's Transaction pooler connection string (port 6543) as DATABASE_URL.",
 };
 
 /** Friendly screen shown instead of the app while required settings are missing. */

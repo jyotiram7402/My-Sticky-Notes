@@ -1,6 +1,6 @@
 # My Sticky Notes: rules for Claude Code
 
-Personal sticky-notes PWA (Next.js App Router + React + TypeScript + Tailwind v4 + Neon Postgres),
+Personal sticky-notes PWA (Next.js App Router + React + TypeScript + Tailwind v4 + Supabase Postgres),
 synced between phone and laptop, hosted on Vercel Hobby. Code lives on GitHub; the user pushes.
 
 ## Hard rules for this machine (most important)
@@ -25,15 +25,22 @@ synced between phone and laptop, hosted on Vercel Hobby. Code lives on GitHub; t
 - Next.js 16 App Router, React 19, TypeScript strict. Vercel Hobby, Node 24.
 - Tailwind CSS v4, CSS-first: `@import "tailwindcss";` + `@theme` in app/globals.css,
   postcss.config.mjs with "@tailwindcss/postcss". No tailwind.config.js.
-- Neon Postgres via `neon()` from @neondatabase/serverless, server only. The query function only
-  works as a tagged template; use `sql.query(text, params)` for everything else.
-  Connection string: DATABASE_URL, else POSTGRES_URL, else the first env var ending in _DATABASE_URL.
+- Supabase Postgres (switched from Neon at the user's request) through the `postgres` driver
+  (postgres.js v4, ESM only), server only, in lib/db.ts. Queries use `sql.unsafe(text, params)` with
+  $1, $2 placeholders; never paste values into SQL text.
+  - `prepare: false` is required: Supabase's transaction pooler (port 6543) has no prepared statements.
+  - Query parameters are stripped from the connection string (Vercel's Supabase vars add
+    `supa=base-pooler.x`, which postgres.js would send to the server); `sslmode` maps to the ssl option.
+  - Use the Transaction pooler string, never the direct connection (IPv6 only, unreachable from Vercel).
+  - Row Level Security is enabled on `notes` with no policies, so Supabase's REST API keys can't read it.
+  - Connection string: DATABASE_URL, else POSTGRES_URL (Vercel's Supabase integration), else the
+    first env var ending in _DATABASE_URL or _POSTGRES_URL.
 - Icons: lucide-react v1 (no brand icons; use canonical names, e.g. `Trash`, `Ellipsis`, `CircleAlert`).
 - Font: Inter via next/font/google.
 - No ORM, UI kit, state library, auth library, PWA plugin or date library.
 
 Pinned versions (keep exact): next 16.4.5, react 19.3.1, react-dom 19.3.1,
-@neondatabase/serverless 1.2.0, lucide-react 1.65.0, typescript 5.9.3, @types/react 19.3.0,
+postgres 4.1.1, lucide-react 1.65.0, typescript 5.9.3, @types/react 19.3.0,
 @types/react-dom 19.3.0, @types/node 24.19.2, tailwindcss 4.3.3, @tailwindcss/postcss 4.3.3,
 postcss 8.5.32. Don't switch to TypeScript 7 (Next's type check needs the TS 5/6 JS API).
 

@@ -4,7 +4,7 @@ A personal sticky-notes app that syncs between your phone and your laptop.
 
 The typical use: you see an AI tool in an Instagram reel, share the link to My Sticky Notes from
 your phone, and open it later on your office laptop. Notes open instantly from a local cache,
-keep working offline, sync through a free Neon Postgres database, and the app installs on your
+keep working offline, sync through a free Supabase Postgres database, and the app installs on your
 phone's home screen like a native app.
 
 - Colorful sticky notes with titles, text, links, folders, icons, dates, pins and a done state.
@@ -15,7 +15,7 @@ phone's home screen like a native app.
 - One passcode, no accounts. Each device logs in once and stays logged in for a year.
 
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, lucide-react and
-Neon Postgres. Hosted for free on Vercel Hobby.
+Supabase Postgres (through the `postgres` driver). Hosted for free on Vercel Hobby.
 
 ## Environment variables
 
@@ -25,10 +25,15 @@ Add these in Vercel → your project → Settings → Environment Variables.
 | ---------------- | -------------------------------------------------------------------------------------------------- |
 | `APP_PASSCODE`   | The passcode you type to unlock the app.                                                           |
 | `SESSION_SECRET` | A long random string (32+ characters) that signs the login cookie.                                |
-| `DATABASE_URL`   | Your Neon connection string. Added automatically when you connect a Neon database in Vercel. |
+| `DATABASE_URL`   | Your Supabase connection string (Transaction pooler, port 6543). Not needed if you connect Supabase from Vercel's Storage tab. |
 
-The app also accepts `POSTGRES_URL`, or any variable whose name ends in `_DATABASE_URL` (what Vercel
-creates if you give the database a custom prefix).
+Connecting Supabase from Vercel's Storage tab adds `POSTGRES_URL` (and a few other variables) for you,
+and the app uses it automatically. It also accepts any variable whose name ends in `_DATABASE_URL`
+or `_POSTGRES_URL` (what Vercel creates if you give the database a custom prefix).
+
+If you copy the connection string from Supabase yourself, use **Connect → Transaction pooler**
+(port 6543) and fill in your database password. Don't use the "Direct connection" string: Vercel
+can't reach it.
 
 To make a good `SESSION_SECRET`, use a password manager's generator (40+ random characters), or
 any long random string you don't use anywhere else.
@@ -41,9 +46,12 @@ If a variable is missing, the app shows a setup screen listing what to add inste
 2. **Import into Vercel.** On [vercel.com](https://vercel.com), choose Add New → Project and import the
    repository. Keep the defaults (framework: Next.js) and deploy. The first deploy shows the setup
    screen, which is expected.
-3. **Add a free Neon database.** In the Vercel project, open the **Storage** tab → Create Database →
-   **Neon** (Serverless Postgres) → free plan. Connect it to the project (all environments). This adds
-   `DATABASE_URL` for you. The `notes` table is created automatically on first use.
+3. **Add a free Supabase database.** In the Vercel project, open the **Storage** tab → Create Database →
+   **Supabase** → free plan. Connect it to the project (all environments). This adds `POSTGRES_URL`
+   for you. The `notes` table is created automatically on first use, with Row Level Security turned on
+   so Supabase's public API keys can't read your notes.
+   (Already have a Supabase project? Add its Transaction pooler connection string as `DATABASE_URL`
+   instead.)
 4. **Add the two secrets.** Settings → Environment Variables → add `APP_PASSCODE` and
    `SESSION_SECRET`.
 5. **Redeploy.** Deployments → the latest deployment → ⋯ → Redeploy. Environment variable changes
@@ -85,6 +93,13 @@ of your notes (your notes stay safe in the database).
 Variables) and redeploy. Every existing login stops working, and each device asks for the passcode
 again. Changing `APP_PASSCODE` alone does not log anyone out.
 
+## If syncing stops after a break
+
+Supabase pauses free projects that have had very little activity for about a week. Your notes stay
+on your devices and you can keep adding them, but the sync icon shows a problem until the database
+is back. To fix it, open [supabase.com](https://supabase.com/dashboard), select the project and
+choose **Restore project**. Nothing is lost; pending changes sync once it's running again.
+
 ## Keyboard shortcuts (laptop)
 
 When you're not typing in a field: **N** new note, **/** search, **Esc** close.
@@ -103,7 +118,7 @@ Vercel builds again automatically.
   background, with retries and backoff when the network is down.
 - The app syncs when it opens, when the window gets focus, when the tab becomes visible again, when
   the device comes back online, and every 60 seconds only while the window is focused. When you're not
-  using it, it makes no requests, so the free database can sleep.
+  using it, it makes no requests at all.
 - Conflicts use last-write-wins on each note's `updatedAt`.
 
 ## Project layout
@@ -118,7 +133,7 @@ app/
   icon.tsx, apple-icon.tsx, icons/*/route.tsx   App icons drawn in code
 components/                UI (notes app, sticky cards, editor sheet, pickers, toasts…)
 lib/
-  auth.ts, db.ts           Server only: passcode, signed cookie, Neon queries
+  auth.ts, db.ts           Server only: passcode, signed cookie, Supabase Postgres queries
   notes.ts, links.ts       Shared: note model, validation, link detection
   store.ts                 Client: local-first store and sync queue
 public/
@@ -130,4 +145,5 @@ db/schema.sql              The table the app creates automatically
 ## Running locally (optional, not on the office computer)
 
 On a computer where installing packages is allowed: copy `.env.example` to `.env.local`, fill in the
-values (a Neon connection string works from anywhere), then run `npm install` and `npm run dev`.
+values (Supabase's Transaction pooler string works from anywhere), then run `npm install` and
+`npm run dev`.
