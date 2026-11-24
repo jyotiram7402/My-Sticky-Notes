@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { LogOut, Search, X } from "lucide-react";
+import { LayoutGrid, LogOut, Search, StickyNote, X } from "lucide-react";
 import {
   compareNotes,
   createNote,
@@ -26,7 +26,17 @@ import {
   subscribe,
   syncNow,
 } from "@/lib/store";
+import {
+  TRASH_LIMIT,
+  clearWallData,
+  loadTrash,
+  loadView,
+  saveTrash,
+  saveView,
+  type WallView,
+} from "@/lib/wall";
 import { ToastProvider, useToast } from "./toast";
+import { Wall } from "./wall";
 import { AddNoteCard, NoteCard, NoteSkeleton } from "./note-card";
 import { NoteEditor } from "./note-editor";
 import { Sheet } from "./sheet";
@@ -95,6 +105,26 @@ function NotesHome() {
   const [editorOpen, setEditorOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // Wall view: laptops only (wide screen with a mouse). The layout and the bin stay on this device.
+  const [wide, setWide] = useState(false);
+  const [view, setView] = useState<WallView>("wall");
+  const [trash, setTrash] = useState<Note[]>([]);
+  const trashRef = useRef<Note[]>([]);
+
+  useEffect(() => {
+    const stored = loadTrash();
+    trashRef.current = stored;
+    setTrash(stored);
+    setView(loadView());
+    const media = window.matchMedia("(min-width: 768px) and (pointer: fine)");
+    const update = () => setWide(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  const wallMode = ready && wide && view === "wall";
+
   // Cached notes render right away; this starts the background sync.
   useEffect(() => {
     initStore();
@@ -154,11 +184,42 @@ function NotesHome() {
   const closeEditor = useCallback(() => setEditorOpen(false), []);
   const unmountEditor = useCallback(() => setEditor(null), []);
 
+  const updateTrash = useCallback((next: Note[]) => {
+    trashRef.current = next;
+    saveTrash(next);
+    setTrash(next);
+  }, []);
+
+  /** Takes a note back out of the bin. */
+  const putBack = useCallback(
+    (note: Note) => {
+      restoreNote({ ...note, updatedAt: new Date().toISOString() });
+      updateTrash(trashRef.current.filter((item) => item.id !== note.id));
+    },
+    [updateTrash],
+  );
+
+  /** Deletes a saved note and keeps a copy in this device's bin, so it can be put back later. */
+  const moveToTrash = useCallback(
+    (note: Note, message: string) => {
+      removeNote(note.id);
+      updateTrash([note, ...trashRef.current.filter((item) => item.id !== note.id)].slice(0, TRASH_LIMIT));
+      toast.show({ message, actionLabel: "Undo", duration: 5000, onAction: () => putBack(note) });
+    },
+    [toast, updateTrash, putBack],
+  );
+
+  const crumpleNote = useCallback((note: Note) => moveToTrash(note, "Note crumpled"), [moveToTrash]);
+  const emptyTrash = useCallback(() => updateTrash([]), [updateTrash]);
+
   const handleDelete = useCallback(
     (note: Note, persisted: boolean) => {
       setEditorOpen(false);
-      if (persisted) removeNote(note.id);
-      if (!persisted && isEmptyNote(note)) return;
+      if (persisted) {
+        moveToTrash(note, "Note deleted");
+        return;
+      }
+      if (isEmptyNote(note)) return;
       toast.show({
         message: "Note deleted",
         actionLabel: "Undo",
@@ -166,8 +227,13 @@ function NotesHome() {
         onAction: () => restoreNote(note),
       });
     },
-    [toast],
+    [toast, moveToTrash],
   );
+
+  const switchView = useCallback((next: WallView) => {
+    setView(next);
+    saveView(next);
+  }, []);
 
   const handleDuplicate = useCallback(
     (note: Note) => {
@@ -246,6 +312,7 @@ function NotesHome() {
       return;
     }
     clearLocalData();
+    clearWallData();
     window.location.replace("/login");
   }, [toast]);
 
@@ -258,15 +325,33 @@ function NotesHome() {
   ];
 
   const showComingUp = comingUp.length > 0;
+  const wallNotes = useMemo(() => [...comingUp, ...others], [comingUp, others]);
 
   return (
     <>
-      <div inert={editorOpen} className="min-h-dvh">
-        <header className="safe-top sticky top-0 z-20 bg-app/90 backdrop-blur-md">
+      <div inert={editorOpen} className={wallMode ? "wall-room min-h-dvh" : "min-h-dvh"}>
+        <header
+          className={`safe-top sticky top-0 z-20 backdrop-blur-md ${wallMode ? "bg-[#ece5d6]/75" : "bg-app/90"}`}
+        >
           <div className="safe-x mx-auto flex h-16 w-full max-w-[1200px] items-center gap-2">
             <SyncButton status={status} onSync={() => void syncNow()} />
             <InstallButton />
             <div className="ml-auto flex items-center gap-2">
+              {wide ? (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={view === "wall" ? "Show notes as a grid" : "Show notes on the wall"}
+                  title={view === "wall" ? "Grid view" : "Wall view"}
+                  onClick={() => switchView(view === "wall" ? "grid" : "wall")}
+                >
+                  {view === "wall" ? (
+                    <LayoutGrid size={20} strokeWidth={1.75} aria-hidden="true" />
+                  ) : (
+                    <StickyNote size={20} strokeWidth={1.75} aria-hidden="true" />
+                  )}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="icon-btn"
@@ -301,7 +386,11 @@ function NotesHome() {
           </div>
         </header>
 
-        <main className="safe-x mx-auto w-full max-w-[1200px] pb-[max(48px,env(safe-area-inset-bottom))]">
+        <main
+          className={`safe-x mx-auto w-full pb-[max(48px,env(safe-area-inset-bottom))] ${
+            wallMode ? "max-w-none" : "max-w-[1200px]"
+          }`}
+        >
           <h1 className="mt-2 text-[32px] font-normal leading-[1.1] tracking-[-0.03em]">My Sticky Notes</h1>
 
           {status === "error" && detail ? (
@@ -384,6 +473,22 @@ function NotesHome() {
                 ))}
               </ul>
             </section>
+          ) : wallMode ? (
+            <>
+              {visibleCount === 0 ? (
+                <p className="mt-4 text-[15px] text-ink/70">{emptyMessage(activeFilter, query, notes.length > 0)}</p>
+              ) : null}
+              <Wall
+                notes={wallNotes}
+                now={now}
+                onOpen={openNote}
+                onNew={() => openNew()}
+                onTrash={crumpleNote}
+                trashed={trash}
+                onPutBack={putBack}
+                onEmptyTrash={emptyTrash}
+              />
+            </>
           ) : (
             <>
               {showComingUp ? (

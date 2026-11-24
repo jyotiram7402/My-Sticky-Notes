@@ -66,6 +66,9 @@ postcss 8.5.32. Don't switch to TypeScript 7 (Next's type check needs the TS 5/6
 - `app/icon.tsx`, `app/apple-icon.tsx`, `app/icons/*/route.tsx` PNG icons drawn with ImageResponse
 - `lib/auth.ts`, `lib/db.ts` server only. `lib/notes.ts`, `lib/links.ts`, `lib/format.ts`,
   `lib/brand.ts` shared and pure. `lib/store.ts`, `lib/clipboard.ts` client only (local-first store + sync queue).
+- `components/wall.tsx` + `lib/wall.ts` wall view for laptops (wide screen with a mouse): drag notes
+  anywhere, double-click to stick, drop on the bin to crumple. Positions and the bin are per device
+  (localStorage), not synced. Phones keep the grid.
 - `public/sw.js` hand-written service worker (bump VERSION when it changes),
   `public/manifest.webmanifest` static manifest with share_target.
 - `db/schema.sql` mirrors the CREATE TABLE that `lib/db.ts` runs on the first API call.

@@ -299,6 +299,150 @@
     pointer-events: auto;
   }
 
+  /* ---------- Wall view (laptops): notes hang anywhere on a textured wall ---------- */
+  .wall-room {
+    background-color: #e9e2d3;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 50% 0%, rgb(255 255 255 / 0.55), transparent 62%),
+      linear-gradient(180deg, #efe8d9, #e1d7c3);
+  }
+
+  .wall {
+    position: relative;
+    isolation: isolate;
+  }
+  .wall-add {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+
+  .wall-note {
+    position: absolute;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transform-origin: 50% 12%;
+    transition: transform 180ms ease;
+  }
+  .wall-note .note-card__open {
+    cursor: grab;
+  }
+  .wall-note--dragging {
+    transition: none;
+  }
+  .wall-note--dragging .note-card__open {
+    cursor: grabbing;
+  }
+  /* A loose note is lifted off the wall; a stuck one lies flat under a strip of tape. */
+  .wall-note[data-stuck="false"] .note-wrap,
+  .wall-note--dragging .note-wrap {
+    filter: drop-shadow(0 3px 3px rgb(17 17 17 / 0.1)) drop-shadow(0 16px 20px rgb(17 17 17 / 0.22));
+  }
+  .wall-note[data-stuck="true"]::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -10px;
+    z-index: 3;
+    width: 68px;
+    height: 22px;
+    border-radius: 2px;
+    background-color: rgb(255 253 236 / 0.78);
+    box-shadow: 0 1px 2px rgb(17 17 17 / 0.18);
+    transform: translateX(-50%) rotate(-3deg);
+    pointer-events: none;
+  }
+  .wall-note--dragging::before,
+  .wall-note--crumple::before {
+    display: none;
+  }
+
+  /* Over the bin the sheet is scrunched into a ball, then it rolls in. */
+  .wall-note--balled .note-card,
+  .wall-note--crumple .note-card {
+    clip-path: circle(44% at 50% 50%);
+    background-image:
+      repeating-linear-gradient(35deg, rgb(0 0 0 / 0.12) 0 6px, transparent 6px 15px),
+      repeating-linear-gradient(-52deg, rgb(255 255 255 / 0.22) 0 5px, transparent 5px 13px);
+  }
+  .wall-note--balled .note-card__body,
+  .wall-note--crumple .note-card__body,
+  .wall-note--balled .note-fold,
+  .wall-note--crumple .note-fold {
+    opacity: 0;
+  }
+  .wall-note--crumple {
+    pointer-events: none;
+    transition: none;
+    transform-origin: 50% 50%;
+    animation: crumple 520ms cubic-bezier(0.5, 0, 0.75, 0.45) forwards;
+  }
+
+  .wall-floor {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4000;
+    height: 14px;
+    background: linear-gradient(180deg, #8e6d4c, #6d5137);
+    box-shadow: 0 -2px 6px rgb(0 0 0 / 0.18);
+    pointer-events: none;
+  }
+
+  .wall-bin {
+    position: fixed;
+    right: 28px;
+    bottom: 14px;
+    z-index: 5000;
+  }
+  .wall-bin__btn {
+    position: relative;
+    display: flex;
+    width: 76px;
+    height: 88px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px 10px 18px 18px;
+    background: linear-gradient(180deg, #5d626b, #3a3e45);
+    color: #ffffff;
+    box-shadow:
+      0 10px 22px rgb(17 17 17 / 0.28),
+      inset 0 3px 0 rgb(255 255 255 / 0.2);
+    transform-origin: 50% 100%;
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+  .wall-bin[data-near="near"] .wall-bin__btn {
+    transform: scale(1.1);
+  }
+  .wall-bin[data-near="over"] .wall-bin__btn {
+    transform: scale(1.22) rotate(-4deg);
+    box-shadow:
+      0 14px 28px rgb(17 17 17 / 0.34),
+      0 0 0 4px var(--app-accent);
+  }
+  .wall-bin__count {
+    position: absolute;
+    right: -8px;
+    top: -8px;
+    display: inline-flex;
+    min-width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border-radius: 9999px;
+    background-color: var(--app-accent);
+    color: var(--app-ink);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
   .note-skeleton {
     aspect-ratio: 4 / 5;
     border-radius: 8px;
@@ -699,6 +843,19 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes crumple {
+  0% {
+    transform: translate(0, 0) scale(0.62) rotate(16deg);
+  }
+  35% {
+    transform: translate(calc(var(--tx) * 0.2), calc(var(--ty) * 0.2 - 26px)) scale(0.42) rotate(170deg);
+  }
+  100% {
+    opacity: 0.25;
+    transform: translate(var(--tx), var(--ty)) scale(0.1) rotate(560deg);
   }
 }
 
