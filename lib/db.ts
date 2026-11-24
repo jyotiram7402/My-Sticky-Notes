@@ -67,6 +67,52 @@ function getSql(): Sql {
   return client.sql;
 }
 
+/** The password inside the connection string, as written and decoded, so it can be hidden in messages. */
+function passwordsOf(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const encoded = new URL(raw).password;
+    const found = [encoded];
+    try {
+      found.push(decodeURIComponent(encoded));
+    } catch {
+      // keep the encoded form only
+    }
+    return found.filter((value) => value.length >= 4);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A short explanation of a database failure that is safe to show to the signed-in user:
+ * a plain hint when the cause is recognised, then the driver's message with credentials removed.
+ */
+export function describeDbError(error: unknown): string {
+  const record: Record<string, unknown> =
+    typeof error === "object" && error !== null ? (error as Record<string, unknown>) : {};
+  const code = typeof record.code === "string" ? record.code : "";
+  let message = error instanceof Error ? error.message : typeof record.message === "string" ? record.message : "";
+  message = message.replace(/\/\/[^\s/@]*@/g, "//***@");
+  for (const password of passwordsOf(getDatabaseUrl())) message = message.split(password).join("***");
+  message = message.trim() || "Unknown error";
+
+  const text = `${code} ${message}`.toLowerCase();
+  let hint = "";
+  if (/28p01|password authentication failed/.test(text)) {
+    hint = "The database password in the connection string is wrong.";
+  } else if (/tenant or user not found/.test(text)) {
+    hint = "The user name or project in the connection string is wrong. Copy the Transaction pooler string again from Supabase → Connect.";
+  } else if (/enotfound|eai_again|enetunreach|ehostunreach/.test(text)) {
+    hint = "Vercel can't reach the database host. Use Supabase's Transaction pooler string (port 6543), not the Direct connection.";
+  } else if (/connect_timeout|etimedout|econnrefused|econnreset/.test(text)) {
+    hint = "The database did not answer. Check that the Supabase project is not paused and that the Transaction pooler string (port 6543) is used.";
+  }
+
+  const details = code ? `${message} (${code})` : message;
+  return (hint ? `${hint} Details: ${details}` : details).slice(0, 400);
+}
+
 // Keep in sync with db/schema.sql.
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS notes (

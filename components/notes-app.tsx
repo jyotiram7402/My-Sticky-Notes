@@ -85,7 +85,7 @@ function emptyMessage(filter: string, query: string, hasNotes: boolean): string 
 }
 
 function NotesHome() {
-  const { notes, status, ready } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { notes, status, ready, detail } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const toast = useToast();
   const now = useNow();
   const [filter, setFilter] = useState("all");
@@ -303,6 +303,15 @@ function NotesHome() {
 
         <main className="safe-x mx-auto w-full max-w-[1200px] pb-[max(48px,env(safe-area-inset-bottom))]">
           <h1 className="mt-2 text-[32px] font-normal leading-[1.1] tracking-[-0.03em]">My Sticky Notes</h1>
+
+          {status === "error" && detail ? (
+            <p
+              role="status"
+              className="wrap-any mt-3 rounded-2xl border border-line bg-surface p-3 text-[13px] leading-relaxed text-danger"
+            >
+              <strong className="font-semibold">Sync problem.</strong> Your notes are safe on this device. {detail}
+            </p>
+          ) : null}
 
           {searchOpen ? (
             <div className="relative mt-4">

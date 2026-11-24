@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { NO_STORE, apiGuard } from "@/lib/auth";
-import { deleteNote, upsertNote } from "@/lib/db";
+import { deleteNote, describeDbError, upsertNote } from "@/lib/db";
 import { isUuid, parseIsoDate, parseNote } from "@/lib/notes";
 
 export const runtime = "nodejs";
@@ -40,7 +40,10 @@ export async function PUT(request: Request, context: NoteRouteContext) {
     return NextResponse.json({ note }, { headers: NO_STORE });
   } catch (error) {
     console.error("PUT /api/notes/[id] failed", error);
-    return NextResponse.json({ error: "Could not save the note" }, { status: 500, headers: NO_STORE });
+    return NextResponse.json(
+      { error: "Could not save the note", detail: describeDbError(error) },
+      { status: 500, headers: NO_STORE },
+    );
   }
 }
 
@@ -62,6 +65,9 @@ export async function DELETE(request: Request, context: NoteRouteContext) {
     return NextResponse.json({ ok: true, note: kept }, { headers: NO_STORE });
   } catch (error) {
     console.error("DELETE /api/notes/[id] failed", error);
-    return NextResponse.json({ error: "Could not delete the note" }, { status: 500, headers: NO_STORE });
+    return NextResponse.json(
+      { error: "Could not delete the note", detail: describeDbError(error) },
+      { status: 500, headers: NO_STORE },
+    );
   }
 }

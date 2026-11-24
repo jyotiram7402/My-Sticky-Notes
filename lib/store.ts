@@ -14,6 +14,8 @@ export interface StoreSnapshot {
   notes: Note[];
   status: SyncStatus;
   ready: boolean;
+  /** Why the last sync failed, in the server's words. Only set while `status` is "error". */
+  detail: string | null;
 }
 
 // `rejected`: the server refused this note (too large or invalid). It stays on this device and is not
@@ -35,7 +37,7 @@ const MAX_BACKOFF_MS = 60_000;
 // Answers that mean "this request is wrong", as opposed to "try again later".
 const PERMANENT_STATUSES = new Set([400, 413, 422]);
 
-const SERVER_SNAPSHOT: StoreSnapshot = { notes: [], status: "syncing", ready: false };
+const SERVER_SNAPSHOT: StoreSnapshot = { notes: [], status: "syncing", ready: false, detail: null };
 
 let notes = new Map<string, Note>();
 let queue = new Map<string, PendingOp>();
@@ -53,6 +55,7 @@ let wantFetch = false;
 let pumpPromise: Promise<void> = Promise.resolve();
 let networkDown = false;
 let hadError = false;
+let errorDetail: string | null = null;
 let lastFetchAt = 0;
 
 let retryAttempt = 0;
@@ -165,15 +168,16 @@ function ensureLoaded(): void {
   loaded = true;
   loadFromStorage();
   list = sortedList();
-  snapshot = { notes: list, status: computeStatus(), ready: true };
+  snapshot = { notes: list, status: computeStatus(), ready: true, detail: null };
 }
 
 function emit(notesChanged = false): void {
   if (!loaded) return;
   if (notesChanged) list = sortedList();
   const status = computeStatus();
-  if (!notesChanged && snapshot.ready && snapshot.status === status) return;
-  snapshot = { notes: list, status, ready: true };
+  const detail = status === "error" ? errorDetail : null;
+  if (!notesChanged && snapshot.ready && snapshot.status === status && snapshot.detail === detail) return;
+  snapshot = { notes: list, status, ready: true, detail };
   for (const listener of listeners) listener();
 }
 
@@ -366,8 +370,23 @@ async function runOnce(fetchAll: boolean): Promise<boolean> {
     return false;
   }
   hadError = false;
+  errorDetail = null;
   resetBackoff();
   return true;
+}
+
+/** The reason the server gave for a failed request, or a plain fallback. */
+async function readDetail(response: Response): Promise<string> {
+  try {
+    const data: unknown = await response.json();
+    if (typeof data === "object" && data !== null) {
+      const detail = (data as { detail?: unknown }).detail;
+      if (typeof detail === "string" && detail.trim() !== "") return detail.slice(0, 400);
+    }
+  } catch {
+    // not JSON
+  }
+  return `The server answered with error ${response.status}.`;
 }
 
 async function flushQueue(): Promise<FlushResult> {
@@ -401,6 +420,7 @@ async function flushQueue(): Promise<FlushResult> {
     if (response.status === 401) return "auth";
     if (!response.ok) {
       if (!PERMANENT_STATUSES.has(response.status)) {
+        errorDetail = await readDetail(response);
         partial = true;
         continue;
       }
@@ -462,7 +482,10 @@ async function fetchServerNotes(): Promise<FetchResult> {
     return "offline";
   }
   if (response.status === 401) return "auth";
-  if (!response.ok) return "error";
+  if (!response.ok) {
+    errorDetail = await readDetail(response);
+    return "error";
+  }
   try {
     const data: unknown = await response.json();
     const rawNotes = typeof data === "object" && data !== null ? (data as { notes?: unknown }).notes : null;
@@ -596,6 +619,7 @@ export function syncNow(): Promise<void> {
     if (op.kind === "upsert" && op.rejected) queue.set(id, { ...op, rejected: false });
   }
   hadError = false;
+  errorDetail = null;
   networkDown = false;
   resetBackoff();
   return request(true);

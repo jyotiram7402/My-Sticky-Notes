@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { NO_STORE, apiGuard } from "@/lib/auth";
-import { listNotes } from "@/lib/db";
+import { describeDbError, listNotes } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +14,9 @@ export async function GET() {
     return NextResponse.json({ notes }, { headers: NO_STORE });
   } catch (error) {
     console.error("GET /api/notes failed", error);
-    return NextResponse.json({ error: "Could not load notes" }, { status: 500, headers: NO_STORE });
+    return NextResponse.json(
+      { error: "Could not load notes", detail: describeDbError(error) },
+      { status: 500, headers: NO_STORE },
+    );
   }
 }
