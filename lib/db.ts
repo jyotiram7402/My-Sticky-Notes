@@ -41,7 +41,79 @@ function connectionFor(raw: string): { url: string; ssl: false | "require" } {
   }
 }
 
+interface ConnectionParts {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  ssl: false | "require";
+}
+
+function decodePart(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Splits a connection string by hand, so a password with characters such as / ? # or @ works even when
+ * it was pasted without percent-encoding. (URL parsers stop at the first of those and take the start
+ * of the password for the host.) The password ends at the last "@". Returns null when it can't be read.
+ */
+function parseConnection(raw: string): ConnectionParts | null {
+  const scheme = /^postgres(?:ql)?:\/\//i.exec(raw);
+  if (!scheme) return null;
+  const rest = raw.slice(scheme[0].length);
+  const at = rest.lastIndexOf("@");
+  if (at === -1) return null;
+
+  const userinfo = rest.slice(0, at);
+  const colon = userinfo.indexOf(":");
+  const username = decodePart(colon === -1 ? userinfo : userinfo.slice(0, colon));
+  const password = colon === -1 ? "" : decodePart(userinfo.slice(colon + 1));
+
+  let tail = rest.slice(at + 1);
+  let sslmode: string | null = null;
+  const question = tail.indexOf("?");
+  if (question !== -1) {
+    sslmode = new URLSearchParams(tail.slice(question + 1)).get("sslmode");
+    tail = tail.slice(0, question);
+  }
+  const slash = tail.indexOf("/");
+  const authority = slash === -1 ? tail : tail.slice(0, slash);
+  const database = slash === -1 ? "" : decodePart(tail.slice(slash + 1));
+  const match = /^([^:]+)(?::(\d+))?$/.exec(authority);
+  if (!match || username === "") return null;
+
+  const host = match[1];
+  const isLocal = host === "localhost" || host === "127.0.0.1";
+  return {
+    host,
+    port: match[2] ? Number(match[2]) : 5432,
+    database: database || "postgres",
+    username,
+    password,
+    ssl: sslmode === "disable" || (isLocal && sslmode === null) ? false : "require",
+  };
+}
+
 function createClient(raw: string) {
+  const parts = parseConnection(raw);
+  if (parts) {
+    return postgres({
+      ...parts,
+      prepare: false,
+      max: 3,
+      idle_timeout: 20,
+      connect_timeout: 15,
+      max_lifetime: 60 * 30,
+      fetch_types: false,
+      onnotice: false,
+    });
+  }
   const { url, ssl } = connectionFor(raw);
   return postgres(url, {
     ssl,
@@ -70,18 +142,14 @@ function getSql(): Sql {
 /** The password inside the connection string, as written and decoded, so it can be hidden in messages. */
 function passwordsOf(raw: string | null): string[] {
   if (!raw) return [];
-  try {
-    const encoded = new URL(raw).password;
-    const found = [encoded];
-    try {
-      found.push(decodeURIComponent(encoded));
-    } catch {
-      // keep the encoded form only
-    }
-    return found.filter((value) => value.length >= 4);
-  } catch {
-    return [];
-  }
+  const found: string[] = [];
+  const parts = parseConnection(raw);
+  if (parts) found.push(parts.password, encodeURIComponent(parts.password));
+  // The part of a password before a "/" or "?" is what a URL parser mistakes for the host.
+  for (const value of [...found]) found.push(...value.split(/[/?#]/));
+  return Array.from(new Set(found))
+    .filter((value) => value.length >= 3)
+    .sort((a, b) => b.length - a.length);
 }
 
 /**

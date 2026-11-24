@@ -31,6 +31,8 @@ synced between phone and laptop, hosted on Vercel Hobby. Code lives on GitHub; t
   - `prepare: false` is required: Supabase's transaction pooler (port 6543) has no prepared statements.
   - Query parameters are stripped from the connection string (Vercel's Supabase vars add
     `supa=base-pooler.x`, which postgres.js would send to the server); `sslmode` maps to the ssl option.
+  - `parseConnection` in lib/db.ts splits the string by hand (password ends at the last `@`) and passes
+    host, port, user and password as options, so passwords with `/ ? # @` work without percent-encoding.
   - Use the Transaction pooler string, never the direct connection (IPv6 only, unreachable from Vercel).
   - Row Level Security is enabled on `notes` and `login_attempts` with no policies, so Supabase's REST
     API keys can't read them.
