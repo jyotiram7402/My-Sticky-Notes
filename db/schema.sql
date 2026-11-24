@@ -23,3 +23,14 @@ CREATE INDEX IF NOT EXISTS notes_updated_at_idx ON notes (updated_at DESC);
 -- Supabase publishes tables in "public" through its REST API. Row level security with no policies
 -- keeps Supabase's public API keys away from the notes; the app's server connects as the table owner.
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+-- Passcode attempts, used to slow down guessing. The address is stored as a keyed hash, never as is.
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  ip_hash text NOT NULL,
+  attempted_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS login_attempts_attempted_at_idx ON login_attempts (attempted_at);
+
+ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;

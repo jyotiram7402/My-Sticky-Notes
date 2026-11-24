@@ -162,6 +162,7 @@ function PasscodeForm({ next, inputRef }: { next: string; inputRef: RefObject<HT
         return;
       }
       if (response.status === 401) message = "That passcode didn't work. Try again.";
+      else if (response.status === 429) message = "Too many tries. Wait 15 minutes, then try again.";
       else if (response.status === 503) message = "The app isn't set up yet. Reload the page to see what's missing.";
     } catch {
       message = "Can't reach the server. Check your connection and try again.";

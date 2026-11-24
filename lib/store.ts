@@ -16,7 +16,9 @@ export interface StoreSnapshot {
   ready: boolean;
 }
 
-type UpsertOp = { kind: "upsert"; id: string; note: Note; isNew: boolean; queuedAt: number };
+// `rejected`: the server refused this note (too large or invalid). It stays on this device and is not
+// sent again until the note is edited or a manual sync is asked for.
+type UpsertOp = { kind: "upsert"; id: string; note: Note; isNew: boolean; queuedAt: number; rejected?: boolean };
 type DeleteOp = { kind: "delete"; id: string; deletedAt: string; queuedAt: number };
 type PendingOp = UpsertOp | DeleteOp;
 
@@ -30,6 +32,8 @@ const POLL_INTERVAL_MS = 60_000;
 const MIN_RESYNC_GAP_MS = 2_000;
 const BASE_BACKOFF_MS = 2_000;
 const MAX_BACKOFF_MS = 60_000;
+// Answers that mean "this request is wrong", as opposed to "try again later".
+const PERMANENT_STATUSES = new Set([400, 413, 422]);
 
 const SERVER_SNAPSHOT: StoreSnapshot = { notes: [], status: "syncing", ready: false };
 
@@ -94,7 +98,9 @@ function normalizeOp(raw: unknown): PendingOp | null {
   const queuedAt = typeof op.queuedAt === "number" && Number.isFinite(op.queuedAt) ? op.queuedAt : Date.now();
   if (op.kind === "upsert") {
     const note = normalizeNote(op.note);
-    return note ? { kind: "upsert", id: note.id, note, isNew: op.isNew === true, queuedAt } : null;
+    return note
+      ? { kind: "upsert", id: note.id, note, isNew: op.isNew === true, queuedAt, rejected: op.rejected === true }
+      : null;
   }
   if (op.kind === "delete" && typeof op.id === "string" && typeof op.deletedAt === "string") {
     return { kind: "delete", id: op.id, deletedAt: op.deletedAt, queuedAt };
@@ -135,10 +141,21 @@ function sortedList(): Note[] {
   return Array.from(notes.values()).sort((a, b) => timeOf(b.updatedAt) - timeOf(a.updatedAt));
 }
 
+function isRejected(op: PendingOp): boolean {
+  return op.kind === "upsert" && op.rejected === true;
+}
+
+function hasRejected(): boolean {
+  for (const op of queue.values()) {
+    if (isRejected(op)) return true;
+  }
+  return false;
+}
+
 function computeStatus(): SyncStatus {
   if (running) return "syncing";
   if (networkDown || (typeof navigator !== "undefined" && navigator.onLine === false)) return "offline";
-  if (hadError) return "error";
+  if (hadError || hasRejected()) return "error";
   if (queue.size > 0) return "syncing";
   return "synced";
 }
@@ -355,7 +372,9 @@ async function runOnce(fetchAll: boolean): Promise<boolean> {
 
 async function flushQueue(): Promise<FlushResult> {
   if (queue.size === 0) return "ok";
-  const ops = Array.from(queue.values()).sort((a, b) => a.queuedAt - b.queuedAt);
+  const ops = Array.from(queue.values())
+    .filter((op) => !isRejected(op))
+    .sort((a, b) => a.queuedAt - b.queuedAt);
   let partial = false;
 
   for (const op of ops) {
@@ -381,7 +400,21 @@ async function flushQueue(): Promise<FlushResult> {
     }
     if (response.status === 401) return "auth";
     if (!response.ok) {
-      partial = true;
+      if (!PERMANENT_STATUSES.has(response.status)) {
+        partial = true;
+        continue;
+      }
+      // The server will never accept this request, so sending it again cannot help.
+      const latest = queue.get(op.id);
+      if (op.kind === "upsert") {
+        if (latest && latest.kind === "upsert" && latest.note.updatedAt === op.note.updatedAt) {
+          queue.set(op.id, { ...latest, rejected: true });
+        }
+      } else if (latest && latest.kind === "delete" && latest.deletedAt === op.deletedAt) {
+        queue.delete(op.id);
+      }
+      persist();
+      emit(true);
       continue;
     }
 
@@ -557,6 +590,11 @@ export function initStore(): void {
 
 /** Manual sync from the status button. */
 export function syncNow(): Promise<void> {
+  ensureLoaded();
+  // Give notes the server refused earlier one more try.
+  for (const [id, op] of Array.from(queue.entries())) {
+    if (op.kind === "upsert" && op.rejected) queue.set(id, { ...op, rejected: false });
+  }
   hadError = false;
   networkDown = false;
   resetBackoff();

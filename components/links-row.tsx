@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Check, Copy, ExternalLink, Plus, X } from "lucide-react";
-import { extractLinks, faviconUrl, linkDomain, normalizeLinkInput } from "@/lib/links";
+import { extractLinks, linkDomain, normalizeLinkInput } from "@/lib/links";
+import { Favicon } from "./favicon";
 import { copyText, readClipboardText } from "@/lib/clipboard";
 
 interface LinksRowProps {
@@ -78,19 +79,7 @@ export function LinksRow({ links, onAdd }: LinksRowProps) {
           return (
             <li key={href} className="min-w-0 max-w-full">
               <div className="link-chip">
-                <img
-                  src={faviconUrl(domain)}
-                  alt=""
-                  width={18}
-                  height={18}
-                  loading="lazy"
-                  decoding="async"
-                  referrerPolicy="no-referrer"
-                  className="size-[18px] shrink-0 rounded-[4px]"
-                  onError={(event) => {
-                    event.currentTarget.style.visibility = "hidden";
-                  }}
-                />
+                <Favicon href={href} size={18} className="size-[18px] shrink-0 rounded-[4px]" />
                 <span className="ml-1.5 min-w-0 max-w-[11rem] truncate text-[14px] font-medium" title={href}>
                   {domain}
                 </span>

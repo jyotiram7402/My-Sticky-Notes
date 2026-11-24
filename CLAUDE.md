@@ -32,7 +32,10 @@ synced between phone and laptop, hosted on Vercel Hobby. Code lives on GitHub; t
   - Query parameters are stripped from the connection string (Vercel's Supabase vars add
     `supa=base-pooler.x`, which postgres.js would send to the server); `sslmode` maps to the ssl option.
   - Use the Transaction pooler string, never the direct connection (IPv6 only, unreachable from Vercel).
-  - Row Level Security is enabled on `notes` with no policies, so Supabase's REST API keys can't read it.
+  - Row Level Security is enabled on `notes` and `login_attempts` with no policies, so Supabase's REST
+    API keys can't read them.
+  - `login_attempts` limits passcode guessing: 10 tries per address and 300 in total per 15 minutes
+    (`app/api/login/route.ts`). Addresses are stored as a keyed hash.
   - Connection string: DATABASE_URL, else POSTGRES_URL (Vercel's Supabase integration), else the
     first env var ending in _DATABASE_URL or _POSTGRES_URL.
 - Icons: lucide-react v1 (no brand icons; use canonical names, e.g. `Trash`, `Ellipsis`, `CircleAlert`).

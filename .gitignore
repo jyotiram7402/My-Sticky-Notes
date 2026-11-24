@@ -1,5 +1,11 @@
 # Dependencies (Vercel installs them; never commit a lockfile from this machine)
 node_modules
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb
 
 # Next.js build output
 .next

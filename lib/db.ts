@@ -87,6 +87,14 @@ const SCHEMA_STATEMENTS = [
   // Supabase publishes tables in "public" through its REST API. With row level security on and no
   // policies, its public API keys can't touch the notes; this server connects as the table owner.
   `ALTER TABLE notes ENABLE ROW LEVEL SECURITY`,
+  // Passcode attempts, used to slow down guessing. The address is stored as a keyed hash, never as is.
+  `CREATE TABLE IF NOT EXISTS login_attempts (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ip_hash text NOT NULL,
+    attempted_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS login_attempts_attempted_at_idx ON login_attempts (attempted_at)`,
+  `ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY`,
 ];
 
 let schemaReady: Promise<void> | null = null;
@@ -207,6 +215,31 @@ export async function upsertNote(note: Note): Promise<Note> {
   // The stored version is newer: return it so the client can catch up.
   const current = await sql.unsafe(`SELECT ${NOTE_COLUMNS} FROM notes WHERE id = $1`, [note.id]);
   return current.length > 0 ? rowToNote(current[0]) : note;
+}
+
+/**
+ * Records one passcode attempt and returns how many were made in the last 15 minutes,
+ * from this address and in total (both counts include this attempt).
+ */
+export async function recordLoginAttempt(ipHash: string): Promise<{ fromIp: number; total: number }> {
+  await ensureSchema();
+  const sql = getSql();
+  await sql.unsafe(`DELETE FROM login_attempts WHERE attempted_at < now() - interval '1 day'`);
+  await sql.unsafe(`INSERT INTO login_attempts (ip_hash) VALUES ($1)`, [ipHash]);
+  const rows = await sql.unsafe(
+    `SELECT (count(*) FILTER (WHERE ip_hash = $1))::int AS from_ip, count(*)::int AS total
+     FROM login_attempts
+     WHERE attempted_at > now() - interval '15 minutes'`,
+    [ipHash],
+  );
+  const row: Record<string, unknown> = rows.length > 0 ? rows[0] : {};
+  return { fromIp: Number(row.from_ip) || 0, total: Number(row.total) || 0 };
+}
+
+/** Forgets the attempts from one address after a successful login. */
+export async function clearLoginAttempts(ipHash: string): Promise<void> {
+  await ensureSchema();
+  await getSql().unsafe(`DELETE FROM login_attempts WHERE ip_hash = $1`, [ipHash]);
 }
 
 /**

@@ -3,7 +3,8 @@
 import type { CSSProperties } from "react";
 import { Folder, Pin, Plus } from "lucide-react";
 import { type Note, DONE_COLORS, NOTE_COLOR_HEX, TEXT_COLOR_HEX } from "@/lib/notes";
-import { faviconUrl, linkDomain, noteLinks, shortLinkLabel, stripLinks } from "@/lib/links";
+import { linkDomain, noteLinks, shortLinkLabel, stripLinks } from "@/lib/links";
+import { Favicon } from "./favicon";
 import { formatClock, formatDayLabel } from "@/lib/format";
 import { NOTE_ICON_COMPONENTS } from "./note-icons";
 import { LinkifiedText } from "./linkified-text";
@@ -86,19 +87,7 @@ export function NoteCard({ note, now, onOpen }: NoteCardProps) {
               aria-label={`Open link: ${domain}`}
               className="hit mt-1.5 flex min-w-0 max-w-full items-center gap-1.5 self-start text-[11px] font-semibold leading-4"
             >
-              <img
-                src={faviconUrl(domain)}
-                alt=""
-                width={14}
-                height={14}
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-                className="size-3.5 shrink-0 rounded-[3px] bg-white"
-                onError={(event) => {
-                  event.currentTarget.style.visibility = "hidden";
-                }}
-              />
+              <Favicon href={firstLink} size={14} className="size-3.5 shrink-0 rounded-[3px] bg-white" />
               <span className="truncate underline decoration-1 underline-offset-2">{domain}</span>
             </a>
           ) : note.folder ? (

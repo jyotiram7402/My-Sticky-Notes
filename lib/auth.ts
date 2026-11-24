@@ -72,6 +72,16 @@ export function passcodeMatches(input: string): boolean {
   return safeEqual(input.trim(), expected);
 }
 
+/**
+ * A keyed hash of the caller's address, for counting passcode attempts without storing the address.
+ * Vercel sets x-forwarded-for itself, so the caller cannot fake it there.
+ */
+export function clientKey(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+  const ip = forwarded.split(",")[0].trim() || request.headers.get("x-real-ip")?.trim() || "unknown";
+  return sign(`ip:${ip}`, getSecret() ?? "");
+}
+
 export const sessionCookieOptions = {
   httpOnly: true,
   secure: true,

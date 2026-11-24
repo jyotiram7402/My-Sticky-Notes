@@ -93,8 +93,17 @@ export function linkDomain(href: string): string {
   }
 }
 
-export function faviconUrl(domain: string): string {
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+/**
+ * The site's own icon, so no third party learns which links are saved.
+ * Null for links that are not https (their icon would be blocked on an https page).
+ */
+export function faviconUrl(href: string): string | null {
+  try {
+    const url = new URL(href);
+    return url.protocol === "https:" ? `${url.origin}/favicon.ico` : null;
+  } catch {
+    return null;
+  }
 }
 
 /** "youtube.com/watch" style label for showing a long URL in a small space. */
