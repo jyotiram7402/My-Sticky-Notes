@@ -209,7 +209,23 @@ export async function upsertNote(note: Note): Promise<Note> {
   return current.length > 0 ? rowToNote(current[0]) : note;
 }
 
-export async function deleteNote(id: string): Promise<void> {
+/**
+ * Deletes a note. When `before` (the time the note was deleted on the device) is given, the row is
+ * only removed if it has not been edited since, so a delete queued offline never wipes a newer edit
+ * from another device. Returns the note that was kept, or null when nothing is left.
+ */
+export async function deleteNote(id: string, before: string | null = null): Promise<Note | null> {
   await ensureSchema();
-  await getSql().unsafe(`DELETE FROM notes WHERE id = $1`, [id]);
+  const sql = getSql();
+  if (before === null) {
+    await sql.unsafe(`DELETE FROM notes WHERE id = $1`, [id]);
+    return null;
+  }
+  const removed = await sql.unsafe(`DELETE FROM notes WHERE id = $1 AND updated_at <= $2 RETURNING id::text AS id`, [
+    id,
+    before,
+  ]);
+  if (removed.length > 0) return null;
+  const current = await sql.unsafe(`SELECT ${NOTE_COLUMNS} FROM notes WHERE id = $1`, [id]);
+  return current.length > 0 ? rowToNote(current[0]) : null;
 }

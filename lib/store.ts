@@ -371,7 +371,11 @@ async function flushQueue(): Promise<FlushResult> {
               cache: "no-store",
               credentials: "same-origin",
             })
-          : await fetch(url, { method: "DELETE", cache: "no-store", credentials: "same-origin" });
+          : await fetch(`${url}?before=${encodeURIComponent(op.deletedAt)}`, {
+              method: "DELETE",
+              cache: "no-store",
+              credentials: "same-origin",
+            });
     } catch {
       return "offline";
     }
@@ -397,8 +401,19 @@ async function flushQueue(): Promise<FlushResult> {
           notes.set(stored.id, stored); // the server kept a newer version
         }
       }
-    } else if (current && current.kind === "delete" && current.deletedAt === op.deletedAt) {
-      queue.delete(op.id);
+    } else {
+      let kept: Note | null = null;
+      try {
+        const data: unknown = await response.json();
+        kept = typeof data === "object" && data !== null ? normalizeNote((data as { note?: unknown }).note) : null;
+      } catch {
+        kept = null;
+      }
+      if (current && current.kind === "delete" && current.deletedAt === op.deletedAt) {
+        queue.delete(op.id);
+        // The note was edited on another device after this delete: the server kept it, so show it again.
+        if (kept && kept.id === op.id) notes.set(kept.id, kept);
+      }
     }
     persist();
     emit(true);

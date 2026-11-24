@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { NO_STORE, apiGuard } from "@/lib/auth";
 import { deleteNote, upsertNote } from "@/lib/db";
-import { isUuid, parseNote } from "@/lib/notes";
+import { isUuid, parseIsoDate, parseNote } from "@/lib/notes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,16 +44,22 @@ export async function PUT(request: Request, context: NoteRouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: NoteRouteContext) {
+/**
+ * Deletes a note. `?before=<ISO time of the delete>` makes it conditional: a note edited after that
+ * time is kept and returned as `note`, so the device can show it again.
+ */
+export async function DELETE(request: Request, context: NoteRouteContext) {
   const blocked = await apiGuard();
   if (blocked) return blocked;
 
   const { id } = await context.params;
   if (!isUuid(id)) return badRequest("Invalid note id");
 
+  const before = parseIsoDate(new URL(request.url).searchParams.get("before"));
+
   try {
-    await deleteNote(id.toLowerCase());
-    return NextResponse.json({ ok: true }, { headers: NO_STORE });
+    const kept = await deleteNote(id.toLowerCase(), before);
+    return NextResponse.json({ ok: true, note: kept }, { headers: NO_STORE });
   } catch (error) {
     console.error("DELETE /api/notes/[id] failed", error);
     return NextResponse.json({ error: "Could not delete the note" }, { status: 500, headers: NO_STORE });
