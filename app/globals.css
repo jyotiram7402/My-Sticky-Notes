@@ -299,13 +299,31 @@
     pointer-events: auto;
   }
 
-  /* ---------- Wall view (laptops): notes hang anywhere on a textured wall ---------- */
+  /* ---------- Wall view (laptops): notes hang on a study wall ---------- */
+  /* The room: a pale plaster wall, window light falling across it, a skirting board and floor. */
   .wall-room {
-    background-color: #e9e2d3;
+    position: relative;
+    isolation: isolate;
+    background-color: #ebe7de;
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      radial-gradient(ellipse at 50% 0%, rgb(255 255 255 / 0.55), transparent 62%),
-      linear-gradient(180deg, #efe8d9, #e1d7c3);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.2 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      linear-gradient(180deg, #f2efe8 0%, #eae6dc 55%, #e1dccf 100%);
+  }
+  .wall-room::before {
+    content: "";
+    position: fixed;
+    left: 9%;
+    top: 9%;
+    z-index: -1;
+    width: 44%;
+    height: 66%;
+    background: linear-gradient(90deg, #fffaf0 0 47%, transparent 47% 53%, #fffaf0 53%);
+    -webkit-mask-image: linear-gradient(180deg, #000 0 46%, transparent 46% 54%, #000 54%);
+    mask-image: linear-gradient(180deg, #000 0 46%, transparent 46% 54%, #000 54%);
+    opacity: 0.62;
+    filter: blur(10px);
+    transform: skewX(-17deg);
+    pointer-events: none;
   }
 
   .wall {
@@ -319,117 +337,298 @@
     z-index: 1;
   }
 
-  .wall-note {
-    position: absolute;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    transform-origin: 50% 12%;
-    transition: transform 180ms ease;
-  }
-  .wall-note .note-card__open {
-    cursor: grab;
-  }
-  .wall-note--dragging {
-    transition: none;
-  }
-  .wall-note--dragging .note-card__open {
-    cursor: grabbing;
-  }
-  /* A loose note is lifted off the wall; a stuck one lies flat under a strip of tape. */
-  .wall-note[data-stuck="false"] .note-wrap,
-  .wall-note--dragging .note-wrap {
-    filter: drop-shadow(0 3px 3px rgb(17 17 17 / 0.1)) drop-shadow(0 16px 20px rgb(17 17 17 / 0.22));
-  }
-  .wall-note[data-stuck="true"]::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: -10px;
-    z-index: 3;
-    width: 68px;
-    height: 22px;
-    border-radius: 2px;
-    background-color: rgb(255 253 236 / 0.78);
-    box-shadow: 0 1px 2px rgb(17 17 17 / 0.18);
-    transform: translateX(-50%) rotate(-3deg);
-    pointer-events: none;
-  }
-  .wall-note--dragging::before,
-  .wall-note--crumple::before {
-    display: none;
-  }
-
-  /* Over the bin the sheet is scrunched into a ball, then it rolls in. */
-  .wall-note--balled .note-card,
-  .wall-note--crumple .note-card {
-    clip-path: circle(44% at 50% 50%);
-    background-image:
-      repeating-linear-gradient(35deg, rgb(0 0 0 / 0.12) 0 6px, transparent 6px 15px),
-      repeating-linear-gradient(-52deg, rgb(255 255 255 / 0.22) 0 5px, transparent 5px 13px);
-  }
-  .wall-note--balled .note-card__body,
-  .wall-note--crumple .note-card__body,
-  .wall-note--balled .note-fold,
-  .wall-note--crumple .note-fold {
-    opacity: 0;
-  }
-  .wall-note--crumple {
-    pointer-events: none;
-    transition: none;
-    transform-origin: 50% 50%;
-    animation: crumple 520ms cubic-bezier(0.5, 0, 0.75, 0.45) forwards;
-  }
-
   .wall-floor {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 4000;
-    height: 14px;
-    background: linear-gradient(180deg, #8e6d4c, #6d5137);
-    box-shadow: 0 -2px 6px rgb(0 0 0 / 0.18);
+    height: 46px;
+    background: linear-gradient(180deg, #fbf9f5 0, #f0ebe2 29px, #a98b68 29px, #8b6c4b 32px, #77593c 100%);
+    box-shadow:
+      0 -1px 0 rgb(60 45 25 / 0.1),
+      0 -12px 26px rgb(60 45 25 / 0.07);
     pointer-events: none;
   }
 
+  .wall-note {
+    --clip-flat: polygon(
+      0 0,
+      33% 0,
+      66% 0,
+      100% 0,
+      100% 35%,
+      100% 70%,
+      100% calc(100% - var(--fold, 22px)),
+      calc(100% - var(--fold, 22px)) 100%,
+      50% 100%,
+      0 100%,
+      0 66%,
+      0 33%
+    );
+    --clip-half: polygon(
+      9% 8%,
+      35% 3%,
+      63% 9%,
+      91% 5%,
+      95% 36%,
+      89% 63%,
+      94% 85%,
+      73% 95%,
+      50% 92%,
+      9% 94%,
+      5% 64%,
+      10% 35%
+    );
+    --clip-ball: polygon(
+      27% 33%,
+      40% 26%,
+      58% 28%,
+      72% 31%,
+      80% 42%,
+      77% 56%,
+      79% 66%,
+      66% 73%,
+      50% 75%,
+      33% 71%,
+      22% 60%,
+      24% 45%
+    );
+    /* Position, swing and size are driven by the Motion library (components/wall.tsx). */
+    position: absolute;
+    left: 0;
+    top: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .wall-note a,
+  .wall-note img {
+    -webkit-user-drag: none;
+  }
+  .wall-note .note-card__open {
+    cursor: grab;
+  }
+  .wall-note--dragging .note-card__open {
+    cursor: grabbing;
+  }
+  .wall-note__tilt {
+    position: relative;
+  }
+  @media (hover: hover) {
+    .wall-note:not(.wall-note--dragging):hover .note-wrap {
+      translate: 0 -4px;
+    }
+  }
+
+  /* A soft highlight that follows the mouse across the sheet. */
+  .wall-note__sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    overflow: hidden;
+    border-radius: 8px;
+    clip-path: var(--clip-flat);
+    pointer-events: none;
+  }
+  .wall-note__sheen > div {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 280px;
+    height: 280px;
+    margin: -140px 0 0 -140px;
+    background: radial-gradient(circle, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 62%);
+  }
+  .wall-note--dragging .wall-note__sheen,
+  .wall-note--balled .wall-note__sheen,
+  .wall-note--toss .wall-note__sheen,
+  .wall-note--unfold .wall-note__sheen {
+    display: none;
+  }
+
+  /* Depth: a stuck note lies flat, a loose one hangs off the wall, a held one floats above it. */
+  .wall-note .note-wrap {
+    transform-origin: 50% 0;
+    filter: drop-shadow(0 2px 2px rgb(40 30 15 / 0.08)) drop-shadow(0 13px 16px rgb(40 30 15 / 0.19));
+    transition: filter 240ms ease;
+  }
+  .wall-note .note-wrap:active {
+    transform: none;
+  }
+  .wall-note[data-stuck="true"] .note-wrap {
+    filter: drop-shadow(0 1px 1px rgb(40 30 15 / 0.1)) drop-shadow(0 4px 7px rgb(40 30 15 / 0.12));
+  }
+  .wall-note.wall-note--dragging .note-wrap {
+    filter: drop-shadow(0 6px 5px rgb(40 30 15 / 0.08)) drop-shadow(0 30px 32px rgb(40 30 15 / 0.26));
+  }
+
+  /* Tape: slaps on when a note is stuck, lifts away when it is peeled off. */
+  .wall-note__tilt::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -11px;
+    z-index: 3;
+    width: 74px;
+    height: 24px;
+    background: linear-gradient(180deg, rgb(255 252 230 / 0.9), rgb(243 236 204 / 0.8));
+    clip-path: polygon(3% 0, 97% 0, 100% 25%, 97% 50%, 100% 75%, 97% 100%, 3% 100%, 0 75%, 3% 50%, 0 25%);
+    translate: -50% -24px;
+    rotate: -18deg;
+    scale: 1.35;
+    opacity: 0;
+    transition:
+      translate 280ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      rotate 280ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      scale 280ms cubic-bezier(0.3, 1.5, 0.5, 1),
+      opacity 140ms ease;
+    pointer-events: none;
+  }
+  .wall-note[data-stuck="true"] .wall-note__tilt::before {
+    translate: -50% 0;
+    rotate: -3deg;
+    scale: 1;
+    opacity: 1;
+  }
+  .wall-note--dragging .wall-note__tilt::before,
+  .wall-note--toss .wall-note__tilt::before,
+  .wall-note--unfold .wall-note__tilt::before {
+    opacity: 0;
+  }
+
+  .wall-note--settle .note-wrap {
+    animation: wall-settle 520ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .wall-note--slap .note-wrap {
+    animation: wall-press 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wall-note--peel .note-wrap {
+    animation: wall-swing 680ms ease-out;
+  }
+
+  /* The sheet itself: twelve corner points, so it can scrunch from a rectangle into a ball. */
+  .wall-note .note-card {
+    clip-path: var(--clip-flat);
+    transition: clip-path 260ms cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  .wall-note .note-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    /* Folded facets: light and shadow fanning out from two creases. */
+    background-image:
+      conic-gradient(
+        from 28deg at 44% 47%,
+        rgb(255 255 255 / 0.4) 0 44deg,
+        rgb(0 0 0 / 0.16) 44deg 96deg,
+        rgb(255 255 255 / 0.14) 96deg 148deg,
+        rgb(0 0 0 / 0.3) 148deg 210deg,
+        rgb(255 255 255 / 0.28) 210deg 256deg,
+        rgb(0 0 0 / 0.1) 256deg 314deg,
+        rgb(255 255 255 / 0.2) 314deg
+      ),
+      conic-gradient(
+        from 200deg at 60% 58%,
+        transparent 0 70deg,
+        rgb(0 0 0 / 0.14) 70deg 130deg,
+        transparent 130deg 215deg,
+        rgb(255 255 255 / 0.22) 215deg 280deg,
+        transparent 280deg
+      );
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+  }
+  .wall-note .note-card__body,
+  .wall-note .note-fold {
+    transition: opacity 140ms ease;
+  }
+  .wall-note--balled .note-card {
+    animation: wall-scrunch 340ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  }
+  .wall-note--toss .note-card {
+    clip-path: var(--clip-ball);
+  }
+  .wall-note--balled .note-card::after,
+  .wall-note--toss .note-card::after {
+    opacity: 1;
+  }
+  .wall-note--balled .note-card__body,
+  .wall-note--toss .note-card__body,
+  .wall-note--balled .note-fold,
+  .wall-note--toss .note-fold {
+    opacity: 0;
+  }
+
+  /* Thrown away: the ball flies to the bin (Motion moves it); nothing on it can be clicked. */
+  .wall-note--toss,
+  .wall-note--unfold {
+    pointer-events: none;
+  }
+  /* Put back: the ball opens up into a sheet again while it flies to where the note hung. */
+  .wall-note--unfold .note-card {
+    animation: wall-unscrunch 760ms cubic-bezier(0.3, 0, 0.2, 1) backwards;
+  }
+  .wall-note--unfold .note-card::after {
+    animation: wall-creases 760ms ease backwards;
+  }
+  .wall-note--unfold .note-card__body,
+  .wall-note--unfold .note-fold {
+    animation: wall-ink 760ms ease backwards;
+  }
+
+  /* The bin: leans toward a note that comes close, and gives when one lands. */
   .wall-bin {
     position: fixed;
-    right: 28px;
-    bottom: 14px;
+    right: 40px;
+    bottom: 12px;
     z-index: 5000;
   }
   .wall-bin__btn {
     position: relative;
-    display: flex;
-    width: 76px;
-    height: 88px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px 10px 18px 18px;
-    background: linear-gradient(180deg, #5d626b, #3a3e45);
-    color: #ffffff;
-    box-shadow:
-      0 10px 22px rgb(17 17 17 / 0.28),
-      inset 0 3px 0 rgb(255 255 255 / 0.2);
+    display: block;
+    width: 116px;
+    height: 134px;
+    border-radius: 12px;
     transform-origin: 50% 100%;
+    filter: drop-shadow(0 9px 9px rgb(40 30 15 / 0.26));
     transition:
-      transform 160ms ease,
-      box-shadow 160ms ease;
+      rotate 260ms cubic-bezier(0.3, 1.35, 0.5, 1),
+      scale 260ms cubic-bezier(0.3, 1.35, 0.5, 1);
+  }
+  .wall-bin__btn svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  @media (hover: hover) {
+    .wall-bin__btn:hover {
+      rotate: -3deg;
+    }
   }
   .wall-bin[data-near="near"] .wall-bin__btn {
-    transform: scale(1.1);
+    rotate: -6deg;
+    scale: 1.06;
   }
   .wall-bin[data-near="over"] .wall-bin__btn {
-    transform: scale(1.22) rotate(-4deg);
-    box-shadow:
-      0 14px 28px rgb(17 17 17 / 0.34),
-      0 0 0 4px var(--app-accent);
+    rotate: -10deg;
+    scale: 1.16;
+  }
+  .wall-bin--catch .wall-bin__btn {
+    animation: bin-catch 520ms cubic-bezier(0.3, 1.2, 0.5, 1);
+  }
+  .wall-bin__ball {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: bin-ball 420ms cubic-bezier(0.3, 1.3, 0.5, 1) backwards;
   }
   .wall-bin__count {
     position: absolute;
-    right: -8px;
-    top: -8px;
+    right: -10px;
+    top: -12px;
     display: inline-flex;
     min-width: 24px;
     height: 24px;
@@ -437,10 +636,12 @@
     justify-content: center;
     padding: 0 6px;
     border-radius: 9999px;
-    background-color: var(--app-accent);
-    color: var(--app-ink);
+    background-color: var(--app-ink);
+    color: #ffffff;
     font-size: 12px;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    animation: badge-pop 360ms cubic-bezier(0.3, 1.5, 0.5, 1);
   }
 
   .note-skeleton {
@@ -846,16 +1047,136 @@
   }
 }
 
-@keyframes crumple {
+/* Wall view motion */
+@keyframes wall-settle {
   0% {
-    transform: translate(0, 0) scale(0.62) rotate(16deg);
+    scale: 1.05;
+    rotate: 0deg;
   }
-  35% {
-    transform: translate(calc(var(--tx) * 0.2), calc(var(--ty) * 0.2 - 26px)) scale(0.42) rotate(170deg);
+  32% {
+    scale: 0.985;
+    rotate: -1.8deg;
+  }
+  64% {
+    rotate: 1.1deg;
   }
   100% {
-    opacity: 0.25;
-    transform: translate(var(--tx), var(--ty)) scale(0.1) rotate(560deg);
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes wall-press {
+  0% {
+    scale: 1.045;
+  }
+  38% {
+    scale: 0.95;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes wall-swing {
+  0% {
+    rotate: 0deg;
+  }
+  22% {
+    rotate: 4.5deg;
+  }
+  48% {
+    rotate: -2.8deg;
+  }
+  74% {
+    rotate: 1.3deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+@keyframes wall-scrunch {
+  0% {
+    clip-path: var(--clip-flat);
+  }
+  45% {
+    clip-path: var(--clip-half);
+  }
+  100% {
+    clip-path: var(--clip-ball);
+  }
+}
+
+@keyframes wall-unscrunch {
+  0%,
+  30% {
+    clip-path: var(--clip-ball);
+  }
+  66% {
+    clip-path: var(--clip-half);
+  }
+  100% {
+    clip-path: var(--clip-flat);
+  }
+}
+
+@keyframes wall-creases {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes wall-ink {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes bin-catch {
+  0% {
+    scale: 1.16;
+    rotate: -10deg;
+  }
+  30% {
+    scale: 1.1 0.88;
+    rotate: 2deg;
+  }
+  62% {
+    scale: 0.97 1.05;
+    rotate: -1deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes bin-ball {
+  from {
+    opacity: 0;
+    translate: 0 -22px;
+    scale: 0.7;
+  }
+}
+
+@keyframes badge-pop {
+  0% {
+    scale: 0.4;
+  }
+  60% {
+    scale: 1.2;
+  }
+  100% {
+    scale: 1;
   }
 }
 

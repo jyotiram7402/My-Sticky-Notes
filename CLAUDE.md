@@ -42,10 +42,12 @@ synced between phone and laptop, hosted on Vercel Hobby. Code lives on GitHub; t
     first env var ending in _DATABASE_URL or _POSTGRES_URL.
 - Icons: lucide-react v1 (no brand icons; use canonical names, e.g. `Trash`, `Ellipsis`, `CircleAlert`).
 - Font: Inter via next/font/google.
+- Animation: `motion` (import from "motion/react"), added at the user's request for the wall view
+  (drag with momentum, springs). Client components only.
 - No ORM, UI kit, state library, auth library, PWA plugin or date library.
 
 Pinned versions (keep exact): next 16.4.5, react 19.3.1, react-dom 19.3.1,
-postgres 4.1.1, lucide-react 1.65.0, typescript 5.9.3, @types/react 19.3.0,
+postgres 4.1.1, lucide-react 1.65.0, motion 14.14.0, typescript 5.9.3, @types/react 19.3.0,
 @types/react-dom 19.3.0, @types/node 24.19.2, tailwindcss 4.3.3, @tailwindcss/postcss 4.3.3,
 postcss 8.5.32. Don't switch to TypeScript 7 (Next's type check needs the TS 5/6 JS API).
 
@@ -67,7 +69,8 @@ postcss 8.5.32. Don't switch to TypeScript 7 (Next's type check needs the TS 5/6
 - `lib/auth.ts`, `lib/db.ts` server only. `lib/notes.ts`, `lib/links.ts`, `lib/format.ts`,
   `lib/brand.ts` shared and pure. `lib/store.ts`, `lib/clipboard.ts` client only (local-first store + sync queue).
 - `components/wall.tsx` + `lib/wall.ts` wall view for laptops (wide screen with a mouse): drag notes
-  anywhere, double-click to stick, drop on the bin to crumple. Positions and the bin are per device
+  anywhere (they swing, glide and can be thrown), double-click to tape, drop or flick at the bin to
+  crumple. Movement is driven by Motion values; scrunch, tape and bin effects are CSS in globals.css. Positions and the bin are per device
   (localStorage), not synced. Phones keep the grid.
 - `public/sw.js` hand-written service worker (bump VERSION when it changes),
   `public/manifest.webmanifest` static manifest with share_target.
